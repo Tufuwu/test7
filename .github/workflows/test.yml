@@ -10,67 +10,23 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
 
     strategy:
-      fail-fast: false
       matrix:
-        python-version: ['3.9', '3.10', '3.11', 'pypy-3.7']
-
-    env:
-      VIPS_VERSION_MAJOR: 8
-      VIPS_VERSION_MINOR: 9
-      VIPS_VERSION_MICRO: 0
-      PATH: ${{ github.workspace }}/vips/bin:${{ env.PATH }}
-      LD_LIBRARY_PATH: ${{ github.workspace }}/vips/lib:${{ env.LD_LIBRARY_PATH }}
-      PKG_CONFIG_PATH: ${{ github.workspace }}/vips/lib/pkgconfig:${{ env.PKG_CONFIG_PATH }}
+        python-version: ['3.9', '3.10']
 
     steps:
     - uses: actions/checkout@v2
-
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
-
-    - name: Install system dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y \
-          libexpat1-dev \
-          gettext \
-          liblcms2-dev \
-          libmagickwand-dev \
-          libopenexr-dev \
-          libcfitsio3-dev \
-          libfftw3-dev \
-          libgif-dev \
-          libgs-dev \
-          libgsf-1-dev \
-          libmatio-dev \
-          libopenslide-dev \
-          liborc-0.4-dev \
-          libpango1.0-dev \
-          libpoppler-glib-dev \
-          librsvg2-dev \
-          libwebp-dev \
-          libtiff5-dev \
-          libglib2.0-dev
-
-    - name: Cache VIPS
-      uses: actions/cache@v2
-      with:
-        path: ${{ github.workspace }}/vips
-        key: ${{ runner.os }}-vips
-
-    - name: Install VIPS
-      run: bash install-vips.sh --without-python
-
-    - name: Upgrade setuptools
-      run: pip install -U setuptools
-
     - name: Install dependencies
-      run: pip install -U .[test]
-
+      run: pip install tox codecov
     - name: Run tests
-      run: python setup.py test
+      run: tox
+    - name: Upload coverage to Codecov
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+      run: codecov
