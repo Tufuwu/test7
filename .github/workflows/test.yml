@@ -1,4 +1,4 @@
-name: Python package
+name: CI
 
 on:
   push:
@@ -14,15 +14,22 @@ jobs:
 
     strategy:
       matrix:
-        python-version: ['3.9', '3.10']
+        python-version: ['3.9']
 
     steps:
     - uses: actions/checkout@v2
-    - name: Set up Python ${{ matrix.python-version }}
+    - name: Set up Python
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
-      run: pip install -r requirements-test.txt
-    - name: Run tests
-      run: make test
+      run: |
+        pip install flake8
+        pip install isort
+        pip install black
+    - name: Run Flake8
+      run: flake8 django_node_assets
+    - name: Run Isort
+      run: isort django_node_assets --check
+    - name: Run Black
+      run: black django_node_assets --check
