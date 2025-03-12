@@ -1,4 +1,4 @@
-name: CI
+name: Python package
 
 on:
   push:
@@ -7,38 +7,46 @@ on:
   pull_request:
     branches:
       - main
+  tags:
+    - '*'
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
     strategy:
       matrix:
         python-version: ['3.9', '3.10']
-
     steps:
     - uses: actions/checkout@v2
-
-    - name: Set up Python
+    - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
-
     - name: Install dependencies
       run: |
-        sudo apt-get update
-        sudo apt-get install --yes gcc python3-dev libsqlcipher-dev
-        pip install -U pip
-        pip install pycodestyle codecov
-        python3 setup.py install
-
-    - name: Lint with pycodestyle
-      run: pycodestyle --exclude=venv --ignore=E501 .
-
+        python setup.py sdist bdist_wheel
+        pip install dist/*.whl
+        pip install twine flake8 pytest
+    - name: Lint with flake8
+      run: flake8
     - name: Test with pytest
-      run: |
-        coverage run --source=. -m pytest
-        coverage report -m
+      run: pytest
 
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v2
+  deploy:
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.9'
+    - name: Install dependencies
+      run: |
+        python setup.py sdist bdist_wheel
+        pip install twine
+    - name: Upload to PyPI
+      env:
+        TWINE_USERNAME: pyqtconsole
+        TWINE_PASSWORD: ${{ secrets.TWINE_PASSWORD }}
+      run: twine upload dist/*
