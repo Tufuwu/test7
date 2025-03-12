@@ -1,4 +1,4 @@
-name: Python package
+name: CI
 
 on:
   push:
@@ -11,35 +11,32 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ['3.9', '3.10', '3.11']
+
+    services:
+      docker:
+        image: docker:stable-dind
+        options: --privileged
 
     steps:
-    - uses: actions/checkout@v3
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
+    - uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
       with:
-        python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
+        python-version: '3.9'
+
+    - name: Install Docker
       run: |
-        python -m pip install --upgrade pip
-        pip install coverage
-    - name: Run tests
-      run: coverage run --source=olefile -m nose tests
-    - name: Upload coverage to Coveralls
-      env:
-        COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
-      run: |
-        pip install coveralls
-        coveralls
-    - name: Coverage report
-      run: coverage report
-    - name: Lint with pyflakes
-      run: |
-        pip install pyflakes
-        pyflakes .
-    - name: Lint with pycodestyle
-      run: |
-        pip install pycodestyle
-        pycodestyle --statistics --count .
+        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+        sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+        sudo apt-get update
+        sudo apt-get -y -o Dpkg::Options::="--force-confnew" install docker-ce
+
+    - name: Build Docker image
+      run: docker build -t draft-kings-fun .
+
+    - name: Run Flake8
+      run: docker run draft-kings-fun flake8 draftfast
+
+    - name: Run Tests
+      run: docker run draft-kings-fun nosetests --with-coverage --cover-package=.
