@@ -1,4 +1,4 @@
-name: Python application
+name: CI
 
 on:
   push:
@@ -23,12 +23,6 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
-      run: |
-        pip install codecov
-        pip install coverage
+      run: pip install tox
     - name: Run tests
-      run: |
-        coverage run jsn.py -i example.jsn -o test.json -I import_dir
-    - name: Upload coverage to Codecov
-      run: |
-        codecov
+      run: tox
